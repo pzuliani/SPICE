@@ -1,5 +1,5 @@
 # SPICE
- Stochastic Parameter Inference with the Cross-Entropy Method: COMING SOON!
+ Stochastic Parameter Inference with the Cross-Entropy Method:
 
 Examples contained within /models/:
 * Lotka-Volterra Model
