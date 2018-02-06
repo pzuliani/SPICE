@@ -20,7 +20,6 @@ where model.jl is replaced with the name of the model of interest.
 * Distributions
 * Sobol
 * DataFrames
-* Sobol
 * Compat
 * StatsBase
 
@@ -53,7 +52,7 @@ x0 = [50,50]
 bounds = [[0.0,0.0,0.0], 
 		[1.0,1.0,1.0]]
 
-# ---- We specify seperable mass-action propensity functions (acting on species x, parameters θ, propensity vector a, time t)
+# ---- We specify separable mass-action propensity functions (acting on species x, parameters θ, propensity vector a, time t)
 function F(x, θ, a, t)
     H(x,θ,a,t)
     a .*= θ
