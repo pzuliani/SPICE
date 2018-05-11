@@ -1,8 +1,7 @@
 function addFirstEns(sys::System, tauVar::TauVar)
-    ens = newFirstEnsemble(sys) 
-    npoints = length(sys.data.dd)
+    ens = addEnsemble(sys, method = :Sobol) 
+    npoints = length(sys.times)
     if sys.routine.ssa == :Direct
-        #getCost!(sys, ens, 1)
         for i in 2:npoints
             if sys.routine.shoot #|| i == 2
                 reShoot!(sys, ens, i-1)
@@ -14,7 +13,6 @@ function addFirstEns(sys::System, tauVar::TauVar)
             getCost!(sys, ens, i)
         end
     elseif sys.routine.ssa == :Tau
-        #getCost!(sys, ens, 1)
         for i in 2:npoints
             if sys.routine.shoot #|| i == 2
                 reShoot!(sys, ens, i-1)
@@ -29,11 +27,10 @@ function addFirstEns(sys::System, tauVar::TauVar)
     ens
 end
 
-function addEns(sys::System, tauVar::TauVar, n::Int64)
-    ens = newEnsemble(sys, n)  
-    npoints = length(sys.data.dd)
+function addEns(sys::System, tauVar::TauVar, n::Int; gn::Int=0)
+    ens = addEnsemble(sys, nSamples = n, method = :Dist, gn=gn)  
+    npoints = length(sys.times)
     if sys.routine.ssa == :Direct
-        #getCost!(sys, ens, 1)
         for i in 2:npoints
             if sys.routine.shoot #|| i == 2
                 reShoot!(sys, ens, i-1)
@@ -45,7 +42,6 @@ function addEns(sys::System, tauVar::TauVar, n::Int64)
             getCost!(sys, ens, i)
         end
     elseif sys.routine.ssa == :Tau
-        #getCost!(sys, ens, 1)
         for i in 2:npoints
             if sys.routine.shoot #|| i == 2
                 reShoot!(sys, ens, i-1)
@@ -60,48 +56,105 @@ function addEns(sys::System, tauVar::TauVar, n::Int64)
     ens
 end
 
-function reShoot!(sys::System, ens::Ensemble, i::Int64)
+function reShoot!(sys::System, ens::Ensemble, i::Int)
     for k in eachindex(ens)
-        sample = genstate(sys.data, sys.times[i])
-        for ii in eachindex(sample) 
-            ens[k].x[ii] = sample[ii]
-        end
-        for xx in ens[k].x
-            push!(ens[k].xa, xx)
-        end
+        s = sample(1:length(sys.data), Weights(1.0./ens[k].dm))
+        ens[k].x = vec(copy(sys.data[s][i,2:end]))
         ens[k].t = sys.times[i]
-        push!(ens[k].ta, ens[k].t)
     end
 end
+
 
 function split!(sys::System, ens::Ensemble)
-    inds = Vector{Int64}(0)
+    inds = Vector{Int}(0)
     costs = Vector{Float64}(length(ens))
-    for k in eachindex(ens)
-        costs[k] = getCostVal(ens[k])
+    for i in eachindex(sys.data)
+        for k in eachindex(ens)
+            costs[k] = getCostVal(ens[k], i)
+        end
+        δ = quantile(costs, sys.routine.nElite / length(ens))
+        append!(inds, find(costs .<= δ))
     end
-    δ = quantile(costs, (sys.routine.nElite / (sys.routine.nSamples*sys.routine.nRepeat)))
-    append!(inds, find(costs .<= δ))
-    cc = counts(inds, length(ens))
-    for k in eachindex(ens)
-        if cc[k] == 0
-            i = sample(inds)
-            overwritePath!(ens[k], ens[i])
+    s = sample(inds, length(ens))
+    new_ens = Ensemble()
+    ens = setPath(sys,ens,s)
+end
+
+function setPath(sys, ens, s)
+    new_ens = Ensemble()
+    if sys.state.i == 1
+        sob = SobolSeq(length(sys.model.bounds[1]), sys.model.bounds[1],  sys.model.bounds[2])
+        for i in eachindex(s)
+            par = next(sob)
+            push!(new_ens, copyPath2(ens[s[i]], par))
+        end
+    else
+        if sys.routine.sampling == :Normal
+            dist = MvNormal(sys.state.θ, sys.state.σ2)
+            for i in eachindex(s)
+                par = rand(dist)
+                push!(new_ens, copyPath2(ens[s[i]], par))
+            end
+        elseif sys.routine.sampling == :log
+            dist = MvLogNormal(sys.state.θ, sys.state.σ2)
+            for i in eachindex(s)
+                par = rand(dist)
+                push!(new_ens, copyPath2(ens[s[i]], par))
+            end
         end
     end
+    new_ens
+end
+
+function copyPath2(p::Path, par::Vector{Float64})
+  	p2 = copyPath(p)
+  	p2.θ = copy(par)
+  	p2
 end
 
 function getEliteData(sys::System, ens::Ensemble)
     eliteSet = Ensemble()
-    costs = Vector{Float64}(length(ens))
     mincost = Inf
-    for k in eachindex(ens)
-        costs[k] = getCostVal(ens[k])
-        costs[k] < mincost && (mincost = costs[k])
+    δm = -Inf
+    for i in eachindex(sys.data)
+        costs = Vector{Float64}(length(ens))
+        for k in eachindex(ens)
+            costs[k] = getCostVal(ens[k], i)
+            costs[k] < mincost && (mincost = costs[k])
+        end
+        δ = quantile(costs, sys.routine.nElite / length(ens))
+        if δ > δm
+            δm = δ
+        end
+        for xx in ens[costs .<= δ]
+            push!(eliteSet, xx)
+        end
     end
-    δ = quantile(costs, (sys.routine.nElite / length(ens)))
-    for xx in ens[costs .<= δ]
-        push!(eliteSet, xx)
+    return eliteSet, δm, mincost
+end
+
+function getEliteGroups(sys::System, ens::Ensemble)
+	ng = ens[end].group
+	groupcosts = zeros(ng)
+	for g in 1:ng
+	    for i in eachindex(sys.data)
+	    	mincost = Inf
+	        for k in eachindex(ens)
+	            (g == ens[k].group) && getCostVal(ens[k], i) < mincost && (mincost = getCostVal(ens[k], i))
+	        end
+	        groupcosts[g] += mincost
+	    end
+	end
+	δ = quantile(groupcosts, sys.routine.nElite / ng)
+	gelite = collect(1:ng)[groupcosts .<= δ]
+
+	groupSet = Ensemble()
+   
+    for xx in ens
+    	if in(xx.group, gelite)
+        	push!(groupSet, xx)
+        end
     end
-    return eliteSet, δ, mincost
+
+    return groupSet, δ, minimum(groupcosts)
 end

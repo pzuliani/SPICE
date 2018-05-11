@@ -12,7 +12,7 @@ function est(sys::System)
     return sys.state
 end
 
-function estimate(system::System, nrun::Int64, output::String)
+function estimate(system::System, nrun::Int, output::String)
     for i in 1:nrun
         # ---- Where to save?
         filepathEst = "./results/"*output*"-estimates.csv"

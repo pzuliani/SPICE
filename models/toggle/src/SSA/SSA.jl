@@ -1,7 +1,6 @@
 include("dm.jl")
 include("tau_aux.jl")
 include("tau.jl")
-
 function simIntDM!(sys::System, pathEnsemble::Ensemble, i::Int64)
     for k in eachindex(pathEnsemble)
         directMethod!(pathEnsemble[k], sys.model.F, sys.model.ν, sys.times[i], sys.model.nr)

@@ -8,7 +8,7 @@ type System
     model::Model
     routine::CEM
     data::DataDistribution
-    times::Vector{Float32}
+    times::Vector{Float64}
     state::SystemState
 
     function System(model::Model, folder::String; routine::CEM = CEM(), state::SystemState = SystemState()) 

@@ -1,15 +1,15 @@
 @compat abstract type Routine end #cross-version compatability
 
-immutable TauOpt
+struct TauOpt
     nc::Int64
     ϵ::Float64
     dtf::Int64
     nd::Int64
 
-    TauOpt(; nc::Int64 = 10, ϵ::Float64 = 0.2, dtf::Int64 = 10, nd::Int64 = 100) = new(nc, ϵ, dtf, nd)
+    TauOpt(; nc::Int64 = 10, ϵ::Float64 = 0.1, dtf::Int64 = 10, nd::Int64 = 100) = new(nc, ϵ, dtf, nd)
 end
 
-immutable CEM <: Routine
+struct CEM <: Routine
     #Routine parameters
     nSamples::Int64
     nRepeat::Int64
@@ -17,6 +17,7 @@ immutable CEM <: Routine
     smoothingParameter::Float64
     shoot::Bool
     splitting::Bool
+    sampling::Symbol
 
     #SSA + Parameters
     ssa::Symbol
@@ -26,8 +27,8 @@ immutable CEM <: Routine
     mSamples::Int64
     maxIter::Int64
 
-    function CEM(; nSamples::Int64 = 500, nRepeat::Int64 = 10, nElite::Int64 = 50, smoothingParameter::Float64 = 0.9, shoot = true, splitting = false, ssa::Symbol = :Direct, tauOpt::TauOpt = TauOpt(), mSamples::Int64 = nSamples*100, maxIter::Int64 = 500)
-        new(nSamples, nRepeat, nElite, smoothingParameter, shoot, splitting, ssa, tauOpt, mSamples, maxIter)
+    function CEM(; nSamples::Int64 = 1000, nRepeat::Int64 = 1, nElite::Int64 = 10, smoothingParameter::Float64 = 0.7, shoot = false, splitting = false, sampling = :log, ssa::Symbol = :Direct, tauOpt::TauOpt = TauOpt(), mSamples::Int64 = nSamples*50, maxIter::Int64 = 250)
+        new(nSamples, nRepeat, nElite, smoothingParameter, shoot, splitting, sampling, ssa, tauOpt, mSamples, maxIter)
     end
 end
 

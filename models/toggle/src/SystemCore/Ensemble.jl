@@ -4,58 +4,90 @@ function Base.show(io::IO, ens::Ensemble)
     println(length(ens), " Trajectories")
 end
 
-function newFirstEnsemble(sys::System)
-    sob = SobolSeq(length(sys.model.bounds[1]), sys.model.bounds[1],  sys.model.bounds[2])
-    ens = Ensemble(sys.routine.nSamples*sys.routine.nRepeat)
-    setFirstEnsemble!(sys, ens, sob)
+function addEnsemble(sys::System; nSamples::Int = sys.routine.nSamples, method::Symbol = :Sobol, gn = 0)
+    ens = Ensemble(nSamples*sys.routine.nRepeat)
+    if method == :Sobol
+        if sys.routine.sampling == :Normal
+            if sys.state.i == 1
+                sob = SobolSeq(length(sys.model.bounds[1]), sys.model.bounds[1],  sys.model.bounds[2])
+            else
+                low = sys.state.θ .- 2 .* sqrt.(diag(sys.state.σ2))
+                up = sys.state.θ .+ 2 .* sqrt.(diag(sys.state.σ2))
+                sob = SobolSeq(length(sys.model.bounds[1]), low, up)
+            end
+            setEnsemble!(sys, ens, sob, gn)
+        elseif sys.routine.sampling == :log
+            if sys.state.i == 1
+                sob = SobolSeq(length(sys.model.bounds[1]), log.(sys.model.bounds[1]),  log.(sys.model.bounds[2]))
+            else
+                low = sys.state.θ .- 2 .* sqrt.(diag(sys.state.σ2))
+                up = sys.state.θ .+ 2 .* sqrt.(diag(sys.state.σ2))
+                sob = SobolSeq(length(sys.model.bounds[1]), low, up)
+            end
+            setEnsembleLog!(sys, ens, sob, gn)
+        end
+    elseif method == :Dist
+        if sys.routine.sampling == :Normal
+            dist = MvNormal(sys.state.θ, sys.state.σ2)
+            setEnsemble!(sys, ens, dist, gn)
+        elseif sys.routine.sampling == :log
+            dist = MvLogNormal(sys.state.θ, sys.state.σ2)
+            setEnsemble!(sys, ens, dist, gn)
+        end
+    end
     return ens
 end
 
-function newFirstEnsembleLog(sys::System)
-    sob = SobolSeq(length(sys.model.bounds[1]), log10.(sys.model.bounds[1]),  log10.(sys.model.bounds[2]))
-    ens = Ensemble(sys.routine.nSamples*sys.routine.nRepeat)
-    setFirstEnsembleLog!(sys, ens, sob)
-    return ens
-end
-
-function setFirstEnsemble!(sys::System, ens::Ensemble, sob::Sobol.ScaledSobolSeq)
-    for i in eachindex(ens)
+function setEnsemble!(sys::System, ens::Ensemble, sob::Sobol.ScaledSobolSeq, gn)
+    l = round(Int,length(ens)/sys.routine.nRepeat,RoundUp)
+    j = 0
+    for i in gn+1:gn+l
         ps = next(sob)
         for r in 1:sys.routine.nRepeat
-            ens[i] = Path(ps, Int32[round(Int,ps[7]),round(Int,ps[8])], sys.times[1], zeros(Int64, sys.model.nr), length(sys.data.dd))
+            j+=1
+            if j > length(ens)
+                return
+            end
+            ens[j] = Path(i, ps, [0,0], sys.times[1], zeros(Int, sys.model.nr))
         end
     end
 end
 
-function setFirstEnsembleLog!(sys::System, ens::Ensemble, sob::Sobol.ScaledSobolSeq)
-    for i in eachindex(ens)
-        ps = 10.^next(sob)
+function setEnsemble!(sys::System, ens::Ensemble, dist, gn)
+    l = round(Int,length(ens)/sys.routine.nRepeat,RoundUp)
+    j = 0
+    for i in gn+1:gn+l
+        ps = rand(dist)
         for r in 1:sys.routine.nRepeat
-            ens[i] = Path(ps, Int32[round(Int,ps[7]),round(Int,ps[8])], sys.times[1], zeros(Int64, sys.model.nr), length(sys.data.dd))
+            sample = genstate(sys.data, sys.times[1])
+            for s in eachindex(sample) 
+                sample[s] = round(Int32,sample[s]/ps[4+s])
+            end
+            j+=1
+            if j > length(ens)
+                return
+            end
+            ens[j] = Path(i, ps, sample, sys.times[1], zeros(Int, sys.model.nr))
         end
     end
 end
 
-function newEnsemble(sys::System, n::Int64)
-    dist = MvNormal(sys.state.θ, sys.state.σ2)
-    ens = Ensemble(n*sys.routine.nRepeat)
-    setEnsemble!(sys, ens, dist)
-    return ens
-end
 
-function sampleDist(dist)
-    v = rand(dist)
-    while any(v .< 0)
-        v = rand(dist)
-    end
-    return v
-end
-
-function setEnsemble!(sys::System, ens::Ensemble, dist)
-    for i in eachindex(ens)
-        ps = sampleDist(dist)
+function setEnsembleLog!(sys::System, ens::Ensemble, sob::Sobol.ScaledSobolSeq, gn)
+    l = round(Int,length(ens)/sys.routine.nRepeat,RoundUp)
+    j = 0
+    for i in gn+1:gn+l
+        ps = exp.(next(sob))
         for r in 1:sys.routine.nRepeat
-            ens[i] = Path(ps, Int32[round(Int32,ps[7]),round(Int,ps[8])], sys.times[1], zeros(Int64, sys.model.nr), length(sys.data.dd))
+            sample = genstate(sys.data, sys.times[1])
+            for s in eachindex(sample) 
+                sample[s] = round(Int32,sample[s]/ps[4+s])
+            end
+            j+=1
+            if j > length(ens)
+                return
+            end
+            ens[j] = Path(i, ps, sample, sys.times[1], zeros(Int, sys.model.nr))
         end
     end
 end

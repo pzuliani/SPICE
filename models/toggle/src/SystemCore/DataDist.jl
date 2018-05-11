@@ -1,5 +1,5 @@
 struct DataDistribution
-    dd::Dict{Float32, Distributions.Distribution}
+    dd::Dict{Float64, Distributions.Distribution}
 end
 
 # assuming normally distributed data
@@ -15,7 +15,7 @@ function createDataDistribution(dfs::Vector{DataFrame}, obs::Vector{Symbol})
 
     # create vector of data distributions over time
     npoints = length(times)
-    dd = Dict{Float32, Distributions.Distribution}()
+    dd = Dict{Float64, Distributions.Distribution}()
     for t in times
         ar = Float64[]
         for df in dfs
@@ -34,9 +34,9 @@ function createDataDistribution(dfs::Vector{DataFrame}, obs::Vector{Symbol})
             s[s .== 0.0] = m[s .== 0.0] ./ 10
         end
 
-        dd[Float32(t)] = MvNormal(m, s)
+        dd[Float64(t)] = MvNormal(m, s)
     end
-    return DataDistribution(dd), convert(Vector{Float32},times)
+    return DataDistribution(dd), convert(Vector{Float64},times)
 end
 
 function createDataDistributionM(dfs::Vector{DataFrame}, obs::Vector{Symbol})
@@ -51,7 +51,7 @@ function createDataDistributionM(dfs::Vector{DataFrame}, obs::Vector{Symbol})
 
     # create vector of data distributions over time
     npoints = length(times2)
-    dd = Dict{Float32, Distributions.Distribution}()
+    dd = Dict{Float64, Distributions.Distribution}()
     for t in times2
         ar = MvNormal[]
         for df in dfs
@@ -62,15 +62,15 @@ function createDataDistributionM(dfs::Vector{DataFrame}, obs::Vector{Symbol})
                 end
             end
         end
-        dd[Float32(t)] = MixtureModel(vec(ar))
+        dd[Float64(t)] = MixtureModel(vec(ar))
     end
     return DataDistribution(dd), times2
 end
 
-function genstate(d::DataDistribution, t::Float32)
-    xa = round.(Int32,rand(d.dd[t], 1))
+function genstate(d::DataDistribution, t::Float64)
+    xa = round.(Int,rand(d.dd[t], 1))
     while any(xa.<0)
-        xa = round.(Int32,rand(d.dd[t], 1))
+        xa = round.(Int,rand(d.dd[t], 1))
     end
     vec(xa)
 end

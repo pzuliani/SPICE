@@ -1,16 +1,16 @@
-function optimisedTauLeap!(model::Model, p::Path, tf::Float32, tauOpt::TauOpt, tauVar::TauVar)
+function optimisedTauLeap!(model::Model, p::Path, tf::Float64, tauOpt::TauOpt, tauVar::TauVar)
     
     # ---- Main loop
-    a = zeros(Float64, model.nr)
+    fly = zeros(model.nr)
     while p.t < tf
         moleculeLimit!(p, tf) && break
-        model.F(p.x, p.θ, a, p.t)
-        if sum(a) <= 0.0
+        model.F(p)
+        if sum(p.a) <= 0.0
             break
         end
         tr = tf - p.t
 
-        τ, switch = computeLeap(model, p, a, tr, tauOpt, tauVar)
+        τ, switch = computeLeap(model, p, tr, tauOpt, tauVar)
         
         # ---- Switch to direct method?
         if switch == true
@@ -19,20 +19,21 @@ function optimisedTauLeap!(model::Model, p::Path, tf::Float32, tauOpt::TauOpt, t
         # ---- Else accept step
         else
             for i in eachindex(p.x)
-                p.x[i] += tauVar.dx[i]
+                @inbounds p.x[i] += tauVar.dx[i]
             end
-            for xx in p.x
-                push!(p.xa, xx)
+
+            @simd for i in eachindex(fly)
+                @inbounds fly[i] += p.a[i]*τ
             end
             p.t += τ
-            push!(p.ta, p.t)
         end
     end
+    p.fly += fly./p.θ   
 end
 
 optimisedTauLeap = optimisedTauLeap!
 
-function gUpdate!(hor::Vector{Int64}, g::Vector{Float64}, x::Vector{Int32})
+function gUpdate!(hor::Vector{Int}, g::Vector{Float64}, x::Vector{Int})
     for i in eachindex(hor)
         if hor[i] == 22
             g[i] = 2.0 + 1.0 / (x[i] - 1.0)
@@ -46,20 +47,20 @@ function gUpdate!(hor::Vector{Int64}, g::Vector{Float64}, x::Vector{Int32})
     end
 end
 
-function computeLeap(model::Model, p::Path, a::Vector{Float64}, tr::Float32, tauOpt::TauOpt, tauVar::TauVar)::Tuple{Float32,Bool}
-    τ = Float32(-Inf)
+function computeLeap(model::Model, p::Path, tr::Float64, tauOpt::TauOpt, tauVar::TauVar)::Tuple{Float64,Bool}
+    τ = -Inf
     
     # ---- index of non-critical reactions
-    Jncr = Vector{Int64}(0)
-    Jcr = Vector{Int64}(0)
+    Jncr = Vector{Int}(0)
+    Jcr = Vector{Int}(0)
 
     for j in eachindex(tauVar.l)
         tauVar.l[j] = minimum(p.x ./ abs.(vec(tauVar.neg_nu[j, :])))
         tauVar.l[j] >= tauOpt.nc ? push!(Jncr, j) : push!(Jcr, j)
     end
 
-    Acr = view(a, Jcr)
-    Ancr = view(a, Jncr)
+    Acr = view(p.a, Jcr)
+    Ancr = view(p.a, Jncr)
     
     if length(Jncr) > 0
 
@@ -68,29 +69,27 @@ function computeLeap(model::Model, p::Path, a::Vector{Float64}, tr::Float32, tau
         μ = zeros(Float64, length(p.x))
         σ2 = zeros(Float64, length(p.x))
         for i in tauVar.irs
-            for j in Jncr
-                μ[i] += model.ν[j, i] * a[j]
-                σ2[i] += model.ν[j, i]^2 * a[j]
+            @inbounds for j in Jncr
+                μ[i] += model.ν[j, i] * p.a[j]
+                σ2[i] += model.ν[j, i]^2 * p.a[j]
             end
         end
 
         maxTerm = max(maximum(view(tauOpt.ϵ * (p.x ./ tauVar.g), tauVar.irs)), 1.0)
         leftTerm = (maxTerm ./ abs.(μ))
         rightTerm = (maxTerm.^2 ./ σ2)
-        τ1 = Float32(minimum([leftTerm; rightTerm]))
+        τ1 = minimum([leftTerm; rightTerm])
     else
-        τ1 = Float32(Inf)
+        τ1 = Inf
     end
 
-    switchCondition = (tauOpt.dtf / sum(a))::Float64
+    switchCondition = (tauOpt.dtf / sum(p.a))::Float64
 
     # ---- total propensity of critical reactions
     sumAcr = sum(Acr)::Float64
-    loop = 0
 
     # ---- Loop until suitable τ that leads to non-negative states
     while true
-        loop += 1
 
         # ---- Check if we should switch to direct method
         if τ1 < switchCondition
@@ -98,13 +97,13 @@ function computeLeap(model::Model, p::Path, a::Vector{Float64}, tr::Float32, tau
         end
 
         # ---- Time to next critical reaction
-        τ2 = Float32(-log(rand()) / sumAcr)
+        τ2 = randexp()/sumAcr#rand(Exponential(1.0 / sumAcr))#-log(rand()) / sumAcr
 
         # ---- Case 1
         if τ1 <= τ2
             τ = τ1
             τ > tr && (τ = tr)
-            for s in eachindex(tauVar.k)
+            @inbounds for s in eachindex(tauVar.k)
                 tauVar.k[s] = zero(eltype(tauVar.k))
             end
             poissonSampler!(Jncr, tauVar.k, Ancr, τ)
@@ -113,8 +112,8 @@ function computeLeap(model::Model, p::Path, a::Vector{Float64}, tr::Float32, tau
         else
             τ = τ2
             τ > tr && (τ = tr)
-            rxn = selectReaction(Acr, sumAcr, length(Acr))::Int64
-            for s in eachindex(tauVar.k)
+            rxn = selectReaction(Acr, sumAcr, length(Acr))::Int
+            @inbounds for s in eachindex(tauVar.k)
                 tauVar.k[s] = zero(eltype(tauVar.k))
             end
             view(tauVar.k, Jcr)[rxn] = 1
@@ -131,14 +130,14 @@ function computeLeap(model::Model, p::Path, a::Vector{Float64}, tr::Float32, tau
         jump = true
         for i in eachindex(p.x)
             if p.x[i] + tauVar.dx[i] < zero(eltype(p.x))
-                τ1 /= Float32(2.0)
+                τ1 /= 2.0
                 jump = false
                 break
             end
         end
         if jump
-            for i in eachindex(p.ra)
-                p.ra[i] += tauVar.k[i]
+            @simd for i in eachindex(p.ra)
+                @inbounds p.ra[i] += tauVar.k[i]
             end
             break
         end
@@ -146,8 +145,8 @@ function computeLeap(model::Model, p::Path, a::Vector{Float64}, tr::Float32, tau
     return τ, false
 end
 
-function poissonSampler!(Jncr::Vector{Int64}, k::Vector{Int64}, Ancr::SubArray, τ::Float32)
+function poissonSampler!(Jncr::Vector{Int}, k::Vector{Int}, Ancr::SubArray, τ::Float64)
     for i in eachindex(Ancr)
-        view(k, Jncr)[i] = Int64(rand(Poisson(Ancr[i] * τ)))
+        view(k, Jncr)[i] = Int(rand(Poisson(Ancr[i] * τ)))
     end
 end

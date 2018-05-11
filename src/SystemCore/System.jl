@@ -4,16 +4,18 @@ include("SystemState.jl")
 include("DataDist.jl")
 
 
-type System
+mutable struct System
     model::Model
     routine::CEM
-    data::DataDistribution
-    times::Vector{Float32}
+    data::Vector{Array}
+    times::Vector{Float64}
     state::SystemState
 
     function System(model::Model, folder::String; routine::CEM = CEM(), state::SystemState = SystemState()) 
-        create = createDataDistributionM(loadData(folder), model.obsname)
-        new(model, routine, create[1], create[2], state)
+        ds = loadData(folder)
+        da = arData(ds)
+        times = Float64.(da[1][:,1])
+        new(model, routine, da, times, state)
     end
 end
 

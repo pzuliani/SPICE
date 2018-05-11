@@ -22,11 +22,7 @@ function _optimisedTauLeap!(model::Model, p::Path, tf::Float32, tauOpt::TauOpt, 
             for i in eachindex(p.x)
                 p.x[i] += tauVar.dx[i]
             end
-            # for xx in p.x
-            #     push!(p.xa, xx)
-            # end
             p.t += τ
-            # push!(p.ta, p.t)
         end
     end
 end

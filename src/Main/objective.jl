@@ -1,21 +1,13 @@
-function loglikelihood(dists, p::Path, consts::Vector{Float64})
-    like = 0.0
-    xx = reshape(p.x, (length(p.x), 1))
-    for i in eachindex(dists)
-        like += pdf(dists[i], xx)[1] * consts[i]
-    end
-    log(like)
-end
-
-function getCost!(sys::System, pathEnsemble::Ensemble, i::Int64)
-    dists = components(sys.data.dd[sys.times[i]])
-    n = ncomponents(sys.data.dd[sys.times[i]])
-    consts = (2*pi).^(length.(dists)/2).*sqrt.(det.(diagm.(var.(dists))))./n
+function getCost!(sys::System, pathEnsemble::Ensemble, i::Int)
     for k in eachindex(pathEnsemble)
-        costll!(dists, pathEnsemble[k], consts)
+        cost!(sys, pathEnsemble[k], i)
     end
 end
 
-function costll!(dists, p::Path, consts::Vector{Float64})
-    p.dm -= loglikelihood(dists, p, consts)
+function cost!(sys::System, p::Path, i::Int)
+    for ds in eachindex(sys.data)
+        for m in sys.model.obs
+            @inbounds p.dm[ds] += ((sys.data[ds][i,m+1]-p.x[m]))^2
+        end
+    end
 end

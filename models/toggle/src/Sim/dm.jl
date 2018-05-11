@@ -17,7 +17,6 @@ function _directMethod!(path::Path, F::Function, ν::Matrix{Int32}, tf::Float32,
             break
         end
         path.t += dt
-        # push!(path.ta, path.t)
 
         # Reaction selection & state update
         rxn = selectReaction(a, suma, nr)
@@ -26,9 +25,7 @@ function _directMethod!(path::Path, F::Function, ν::Matrix{Int32}, tf::Float32,
         @simd for i in eachindex(path.x)
             @inbounds path.x[i] += dx[i]
         end
-        # for xx in path.x
-        #     push!(path.xa, xx)
-        # end
+
     end
 end
 _directMethod = _directMethod!
@@ -48,7 +45,6 @@ function _nDirectMethod!(p::Path, F::Function, ν::Matrix{Int32}, tf::Float32, n
         # Time step
         dt = Float32(rand(Exponential(1.0 / suma)))
         p.t += dt
-        # push!(p.ta, p.t)
 
         # Reaction selection & state update
         rxn = selectReaction(a, suma, nr)
@@ -57,9 +53,7 @@ function _nDirectMethod!(p::Path, F::Function, ν::Matrix{Int32}, tf::Float32, n
         @simd for i in eachindex(p.x)
             @inbounds p.x[i] += dx[i]
         end
-        # for xx in p.x
-        #     push!(p.xa, xx)
-        # end
+
         nstep += 1
     end
 end

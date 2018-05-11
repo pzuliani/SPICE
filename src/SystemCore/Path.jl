@@ -1,48 +1,74 @@
-type Path
+mutable struct Path
+	group::Int
     θ::Vector{Float64}
-    x::Vector{Int32}
-    xa::Vector{Int32}
-    t::Float32
-    ta::Vector{Float32}
-    ra::Vector{Int64}
-    dm::Float64
-
-    Path(θ::Vector{Float64}, x::Vector{Int32}, xa::Vector{Int32}, t::Float32, ta::Vector{Float32}, ra::Vector{Int64}, dm::Float64) = new(θ, x, xa, t, ta, ra, dm)
+    x::Vector{Int}
+    t::Float64
+    a::Vector{Float64}
+    fly::Vector{Float64}
+    ra::Vector{Int}
+    dm::Vector{Float64}
+    w::Float64
+    Path(group::Int,θ::Vector{Float64}, x::Vector{Int}, t::Float64, a::Vector{Float64}, fly::Vector{Float64}, ra::Vector{Int}, dm::Vector{Float64}, w::Float64) = new(group, θ, x, t, a, fly, ra, dm, w)
 end
 
-Path(θ::Vector{Float64}, x::Vector{Int32}, t::Float32, ra::Vector{Int64}, i::Int) = Path(θ, copy(x), copy(x), Float32(t), Float32[t], ra, 0.0)
-
-Base.copy(p::Path) = Path(p.θ, copy(p.x), copy(p.xa), p.t, copy(p.ta), copy(p.ra), copy(p.dm))
+Path(group::Int,θ::Vector{Float64}, x::Vector{Int}, t::Float64, ra::Vector{Int}, nd::Int) = Path(group, θ, copy(x), t, zeros(Float64, length(ra)), Float64.(ra), ra, zeros(nd), 1.0)
+Path(group::Int,θ::Vector{Float64}, x::Vector{Int}, t::Float64, ra::Vector{Int}, dm::Vector{Float64}) = Path(group, θ, copy(x), t, zeros(Float64, length(ra)), Float64.(ra), ra, dm, 1.0)
 
 function Base.show(io::IO, p::Path)
-    print("Path { \n θ: ", p.θ, " \n x: ", p.x, ", \n xa: ", p.xa, ", \n t: ", p.t, ", \n ta: ", p.ta, ", \n reaction firings: ", p.ra, ", \n objective value: ", p.dm, "}")
+    print("Path { \n group: ", p.group, " \n θ: ", p.θ, " \n x: ", p.x, ", \n t: ", p.t,  ", \n reaction firings: ", p.ra, ", \n objective value: ", p.dm, "}")
 end
 
 function getCostVal(p::Path)
-    p.dm
+    minimum(p.dm)
+end
+function getCostVal(p::Path, i)
+    p.dm[i]
 end
 
 function getRates(p::Path)
     p.θ
 end
 
+function getGroup(p::Path)
+	p.group
+end
+
+function getGroupCounts(ens::Vector{Path})
+	counts(getGroup.(ens))
+end
+
 function overwritePath!(p1::Path, p2::Path)
+	p1.group = p2.group
+    p1.θ = copy(p2.θ)
     p1.x = copy(p2.x)
-    p1.xa = copy(p2.xa)
-    p1.t = copy(p2.t)
-    p1.ta = copy(p2.ta)
+    p1.t = p2.t
+    p1.a = copy(p2.a)
+    p1.fly = copy(p2.fly)
     p1.ra = copy(p2.ra)
     p1.dm = copy(p2.dm)
 end
 
-# function splitPath!(p1::Path, p2::Path)
-#     dist = MvNormal(p2.θ, 0.2*p2.θ)
-#     p1.θ = sampleDist(dist)
-#     p1.x = copy(p2.x)
-#     p1.xa = copy(p2.xa)
-#     p1.t = copy(p2.t)
-#     p1.ta = copy(p2.ta)
-#     p1.ra = copy(p2.ra)
-#     p1.dm = copy(p2.dm)
-# end
-
+function copyPath(p::Path)
+	group = p.group
+    θ = copy(p.θ)
+    x = copy(p.x)
+    t = p.t
+    a = copy(p.a)
+    fly = copy(p.fly)
+    ra = copy(p.ra)
+    dm = copy(p.dm)
+    w = copy(p.w)
+    Path(group, θ, x, t, a, fly, ra, dm, w)
+end
+function copyPath(p::Path, rw::Int)
+	group = p.group
+    θ = copy(p.θ)
+    x = copy(p.x)
+    t = p.t
+    a = copy(p.a)
+    fly = copy(p.fly)
+    ra = copy(p.ra)
+    dm = copy(p.dm)
+    w = copy(p.w) / rw
+    Path(group, θ, x, t, a, fly, ra, dm, w)
+end
