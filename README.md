@@ -1,6 +1,7 @@
 # SPICE
  Stochastic Parameter Inference with the Cross-Entropy Method: 
 
+
 Examples contained within /models/:
 * Lotka-Volterra Model
 * Yeast Polarization Model
@@ -20,7 +21,6 @@ where model.jl is replaced with the name of the model of interest.
 * Distributions
 * Sobol
 * DataFrames
-* Sobol
 * Compat
 * StatsBase
 
@@ -52,6 +52,7 @@ x0 = [50,50]
 # ---- Bounds on the initial (log) search space for parameters
 bounds = [[1e-6,1e-6,1e-6],
 		[10.0,10.0,10.0]]
+
 
 # ---- We specify seperable mass-action propensity functions (acting on a path p, containing as attributes the species x, parameters θ, propensity vector a, time t)
 function F(p)
