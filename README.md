@@ -15,7 +15,7 @@ To run a model from the command line:
 where model.jl is replaced with the name of the model of interest.
 
 ## Requirements:
-* Julia (v0.6+) [see here](https://github.com/JuliaLang)
+* Julia (v1.0+) [see here](https://github.com/JuliaLang)
 
 ## Packages required:
 * Distributions
