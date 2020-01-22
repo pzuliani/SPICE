@@ -1,16 +1,16 @@
 include("./src/SPICE.jl")
-using SPICE
+using .SPICE
 
 # ---- State-change matrix
-ν = [[1 0];[-1 0];[0 1];[0 -1]]
+const ν = [[1 0];[-1 0];[0 1];[0 -1]]
 # ---- Initial state-space
 x0 = [50,2500]
 
 # ---- Highest orders of reaction for tau-leaping
-hor = [1,1]
+const hor = [1,1]
 
 # ---- Bounds on the initial search space for parameters
-bounds = [[1,1e-3,1,1e-3,50,50,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3], [50,1,50,1,1e4,500,500,10,10,10,10,10]]
+const bounds = [[1,1e-3,1,1e-3,50,50,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3], [50,1,50,1,1e4,500,500,10,10,10,10,10]]
 
 # ---- Hazard functions
 function F(p)

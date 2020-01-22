@@ -1,19 +1,19 @@
 include("../../src/SPICE.jl")
-using SPICE
+using .SPICE
 
 # ---- State-change matrix
-ν = [[1 0 0 0 0 0 0];[0 0 0 0 0 0 0];[0 1 1 0 0 0 0];[1 0 0 0 0 0 0];[0 0 0 0 1 1 0];[0 0 0 0 0 0 1];[0 0 0 1 0 0 0];[0 0 1 0 0 0 0]]-
+const ν = [[1 0 0 0 0 0 0];[0 0 0 0 0 0 0];[0 1 1 0 0 0 0];[1 0 0 0 0 0 0];[0 0 0 0 1 1 0];[0 0 0 0 0 0 1];[0 0 0 1 0 0 0];[0 0 1 0 0 0 0]]-
 [[0 0 0 0 0 0 0];[1 0 0 0 0 0 0];[1 1 0 0 0 0 0];[0 0 1 0 0 0 0];[0 0 1 1 0 0 0];[0 0 0 0 1 0 0];[0 0 0 0 0 1 1];[0 0 0 0 0 0 0]]
 
 # ---- Initial state-space
 x0 = [500, 4, 110, 300, 2, 20, 90]
 
 # ---- Highest orders of reaction for tau-leaping
-hor = [2,2,2,2,1,2,2]
+const hor = [2,2,2,2,1,2,2]
 
 # ---- Bounds on the initial search space for parameters
 # ---- Real parameters are [.38, .04, .082, .12, .021, .1,.005, 13.21]
-bounds = [[1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6], [10.0,10.0,10.0,10.0,10.0,10.0,10.0,100.0]]
+const bounds = [[1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6,1e-6], [10.0,10.0,10.0,10.0,10.0,10.0,10.0,100.0]]
 
 # ---- Hazard functions
 function F(p)
@@ -35,5 +35,3 @@ end
 system = System(Model(x0,F,H,ν,bounds,hor=hor, obsname=[:R,:L,:RL,:G,:Ga,:Gbg,:Gd]), "./data/5-sets",routine=CEM(ssa=:Direct, nElite = 10, nRepeat = 1, nSamples=1000, maxIter=250, mSamples=20000, shoot=false, splitting=false, sampling=:log))
 
 estimate(system, 100, "yeast")
-
-

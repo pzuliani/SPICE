@@ -5,7 +5,7 @@ function updateParameters!(sys::System, ens::Ensemble)
 
     # update kinetic rate parameters
     θstep = computeRateMeans!(sys, rxnActual, rxnExpect)
-    
+
     # update variances
     computeRateVar!(sys, ens, rxnActual, rxnExpect, θstep)
     append!(sys.state.θs, sys.state.θ)
@@ -40,7 +40,7 @@ function computeRxnStats(sys::System, ens::Ensemble)
 end
 
 function computeRateMeans!(sys::System, rxnActual::Matrix{Float64}, rxnExpect::Matrix{Float64})
-    θstep = vec(sum(rxnActual, 2) ./ sum(rxnExpect, 2))
+    θstep = vec(sum(rxnActual, dims = 2) ./ sum(rxnExpect, dims = 2))
 
     if sys.routine.sampling == :log
         θstep = log.(θstep)
@@ -56,10 +56,10 @@ end
 
 function computeRateVar!(sys::System, ens::Ensemble, rxnActual::Matrix{Float64}, rxnExpect::Matrix{Float64}, θstep::Vector{Float64})
     if sys.routine.sampling == :log
-        tmp = log.((rxnActual.+0.01) ./ rxnExpect)
-        σ2step = vec(var(tmp,2))
+        tmp = log.((rxnActual .+ 0.01) ./ rxnExpect)
+        σ2step = vec(var(tmp, dims = 2))
     else
-        σ2step = vec(var(tmp,2))
+        σ2step = vec(var(tmp, dims = 2))
     end
 
     if sys.state.i == 1

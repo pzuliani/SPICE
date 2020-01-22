@@ -1,7 +1,7 @@
 function reShoot!(sys::System, ens::Ensemble, i::Int64)
     for k in eachindex(ens)
         sample = genstate(sys.data, sys.times[i])
-        for i in eachindex(sample) 
+        for i in eachindex(sample)
             ens[k].x[i] = round(Int,sample[i]/ens[k].θ[4+i])
         end
         ens[k].t = sys.times[i]
@@ -9,7 +9,7 @@ function reShoot!(sys::System, ens::Ensemble, i::Int64)
 end
 
 function addFirstEns(sys::System, tauVar::TauVar)
-    ens = addEnsemble(sys, method = :Sobol) 
+    ens = addEnsemble(sys, method = :Sobol)
     npoints = length(sys.times)
     if sys.routine.ssa == :Direct
         for i in 2:npoints
@@ -38,7 +38,7 @@ function addFirstEns(sys::System, tauVar::TauVar)
 end
 
 function addEns(sys::System, tauVar::TauVar, n::Int; gn::Int=0)
-    ens = addEnsemble(sys, nSamples = n, method = :Dist, gn=gn)  
+    ens = addEnsemble(sys, nSamples = n, method = :Dist, gn=gn)
     npoints = length(sys.times)
     if sys.routine.ssa == :Direct
         for i in 2:npoints
@@ -67,13 +67,13 @@ function addEns(sys::System, tauVar::TauVar, n::Int; gn::Int=0)
 end
 
 function split!(sys::System, ens::Ensemble)
-    inds = Vector{Int}(0)
-    costs = Vector{Float64}(length(ens))
+    inds = Vector{Int}(undef, 0)
+    costs = Vector{Float64}(undef, length(ens))
     for k in eachindex(ens)
         costs[k] = getCostVal(ens[k])
     end
     δ = quantile(costs, sys.routine.nElite / length(ens))
-    append!(inds, find(costs .<= δ))
+    append!(inds, findall(costs .<= δ))
     s = sample(inds, length(ens))
     new_ens = Ensemble()
     ens = setPath(sys,ens,s)
@@ -84,7 +84,7 @@ function setPath(sys, ens, s)
     if sys.state.i == 1
         sob = SobolSeq(length(sys.model.bounds[1]), sys.model.bounds[1],  sys.model.bounds[2])
         for i in eachindex(s)
-            par = next(sob)
+            par = next!(sob)
             push!(new_ens, copyPath2(ens[s[i]], par))
         end
     else
@@ -114,7 +114,7 @@ end
 function getEliteData(sys::System, ens::Ensemble)
     eliteSet = Ensemble()
     mincost = Inf
-    costs = Vector{Float64}(length(ens))
+    costs = Vector{Float64}(undef, length(ens))
     for k in eachindex(ens)
         costs[k] = getCostVal(ens[k])
         costs[k] < mincost && (mincost = costs[k])

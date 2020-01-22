@@ -1,4 +1,4 @@
-type SystemState
+mutable struct SystemState
     i::Int64
     θ::Vector{Float64}
     σ2::Matrix{Float64}
@@ -6,8 +6,8 @@ type SystemState
     γmins::Vector{Float64}
     ns::Vector{Int64}
     θs::Vector{Float64}
-    
-    SystemState(; i::Int64 = 0, θ::Vector{Float64} = Vector{Float64}(), σ2::Matrix{Float64} = Matrix{Float64}(0, 0), γs::Vector{Float64} = Vector{Float64}(), δmin_history::Vector{Float64} = Vector{Float64}(), ns::Vector{Float64} = Vector{Float64}(), θs::Vector{Float64} = Vector{Float64}()) = new(i, θ, σ2, γs, δmin_history, ns, θs)
+
+    SystemState(; i::Int64 = 0, θ::Vector{Float64} = Vector{Float64}(), σ2::Matrix{Float64} = Matrix{Float64}(undef, 0, 0), γs::Vector{Float64} = Vector{Float64}(), δmin_history::Vector{Float64} = Vector{Float64}(), ns::Vector{Float64} = Vector{Float64}(), θs::Vector{Float64} = Vector{Float64}()) = new(i, θ, σ2, γs, δmin_history, ns, θs)
 end
 
 function Base.show(io::IO, s::SystemState)

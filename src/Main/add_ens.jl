@@ -1,5 +1,5 @@
 function addFirstEns(sys::System, tauVar::TauVar)
-    ens = addEnsemble(sys, method = :Sobol) 
+    ens = addEnsemble(sys, method = :Sobol)
     npoints = length(sys.times)
     if sys.routine.ssa == :Direct
         for i in 2:npoints
@@ -28,7 +28,7 @@ function addFirstEns(sys::System, tauVar::TauVar)
 end
 
 function addEns(sys::System, tauVar::TauVar, n::Int; gn::Int=0)
-    ens = addEnsemble(sys, nSamples = n, method = :Dist, gn=gn)  
+    ens = addEnsemble(sys, nSamples = n, method = :Dist, gn=gn)
     npoints = length(sys.times)
     if sys.routine.ssa == :Direct
         for i in 2:npoints
@@ -66,14 +66,14 @@ end
 
 
 function split!(sys::System, ens::Ensemble)
-    inds = Vector{Int}(0)
-    costs = Vector{Float64}(length(ens))
+    inds = Vector{Int}(undef, 0)
+    costs = Vector{Float64}(undef, length(ens))
     for i in eachindex(sys.data)
         for k in eachindex(ens)
             costs[k] = getCostVal(ens[k], i)
         end
         δ = quantile(costs, sys.routine.nElite / length(ens))
-        append!(inds, find(costs .<= δ))
+        append!(inds, findall(costs .<= δ))
     end
     s = sample(inds, length(ens))
     new_ens = Ensemble()
@@ -85,7 +85,7 @@ function setPath(sys, ens, s)
     if sys.state.i == 1
         sob = SobolSeq(length(sys.model.bounds[1]), sys.model.bounds[1],  sys.model.bounds[2])
         for i in eachindex(s)
-            par = next(sob)
+            par = next!(sob)
             push!(new_ens, copyPath2(ens[s[i]], par))
         end
     else
@@ -117,7 +117,7 @@ function getEliteData(sys::System, ens::Ensemble)
     mincost = Inf
     δm = -Inf
     for i in eachindex(sys.data)
-        costs = Vector{Float64}(length(ens))
+        costs = Vector{Float64}(undef, length(ens))
         for k in eachindex(ens)
             costs[k] = getCostVal(ens[k], i)
             costs[k] < mincost && (mincost = costs[k])
@@ -149,7 +149,7 @@ function getEliteGroups(sys::System, ens::Ensemble)
 	gelite = collect(1:ng)[groupcosts .<= δ]
 
 	groupSet = Ensemble()
-   
+
     for xx in ens
     	if in(xx.group, gelite)
         	push!(groupSet, xx)

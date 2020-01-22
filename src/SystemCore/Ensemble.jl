@@ -5,7 +5,7 @@ function Base.show(io::IO, ens::Ensemble)
 end
 
 function addEnsemble(sys::System; nSamples::Int = sys.routine.nSamples, method::Symbol = :Sobol, gn = 0)
-    ens = Ensemble(nSamples*sys.routine.nRepeat)
+    ens = Ensemble(undef, nSamples*sys.routine.nRepeat)
     if method == :Sobol
         if sys.routine.sampling == :Normal
             if sys.state.i == 1
@@ -39,12 +39,12 @@ function addEnsemble(sys::System; nSamples::Int = sys.routine.nSamples, method::
 end
 
 function setEnsemble!(sys::System, ens::Ensemble, sob::Sobol.ScaledSobolSeq, gn)
-    l = round(Int,length(ens)/sys.routine.nRepeat,RoundUp)
+    l = round(Int, length(ens)/sys.routine.nRepeat,RoundUp)
     j = 0
     for i in gn+1:gn+l
-        ps = next(sob)
+        ps = next!(sob)
         for r in 1:sys.routine.nRepeat
-            j+=1
+            j += 1
             if j > length(ens)
                 return
             end
@@ -54,12 +54,12 @@ function setEnsemble!(sys::System, ens::Ensemble, sob::Sobol.ScaledSobolSeq, gn)
 end
 
 function setEnsemble!(sys::System, ens::Ensemble, dist, gn)
-    l = round(Int,length(ens)/sys.routine.nRepeat,RoundUp)
+    l = round(Int, length(ens)/sys.routine.nRepeat,RoundUp)
     j = 0
     for i in gn+1:gn+l
         ps = rand(dist)
         for r in 1:sys.routine.nRepeat
-            j+=1
+            j += 1
             if j > length(ens)
                 return
             end
@@ -69,12 +69,12 @@ function setEnsemble!(sys::System, ens::Ensemble, dist, gn)
 end
 
 function setEnsembleLog!(sys::System, ens::Ensemble, sob::Sobol.ScaledSobolSeq, gn)
-    l = round(Int,length(ens)/sys.routine.nRepeat,RoundUp)
+    l = round(Int, length(ens)/sys.routine.nRepeat,RoundUp)
     j = 0
     for i in gn+1:gn+l
-        ps = exp.(next(sob))
+        ps = exp.(next!(sob))
         for r in 1:sys.routine.nRepeat
-            j+=1
+            j += 1
             if j > length(ens)
                 return
             end

@@ -20,15 +20,17 @@ function estimate(system::System, nrun::Int, output::String)
         mkpath("./results/traces/")
 
         # ---- Start timer
-        tic()
+        start_time = time()
         state = est(system)
 
         # ---- End timer
-        t = toc()
+        end_time = time()
+
+        t = end_time - start_time
 
         # ---- Estimates
         f1 = open(filepathEst, "a")
-        writecsv(f1, [state.θ' diag(state.σ2)' t])
+        CSV.write(f1, DataFrame([Array(state.θ') Array(diag(state.σ2)') t]), delim=',')
         close(f1)
 
         # ---- Costs
@@ -42,11 +44,11 @@ function estimate(system::System, nrun::Int, output::String)
         ns = state.ns[2:end]
 
         it = collect(1:l)
-        _run = repmat([i],l)
+        _run = repeat([i],l)
         traceAr = [θs γs ns it _run]
 
         f2 = open(filepathTrace, "w")
-        writecsv(f2, traceAr)
+        CSV.write(f2, DataFrame(traceAr), delim =',')
         close(f2)
 
         resetSystem!(system)

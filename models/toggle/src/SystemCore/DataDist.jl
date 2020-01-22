@@ -45,7 +45,7 @@ function createDataDistributionM(dfs::Vector{DataFrame}, obs::Vector{Symbol})
     # extract unique timepoints
     times = Float64[]
     for df in dfs
-        append!(times, convert(Vector{Float64}, df[:Time]))
+        append!(times, convert(Vector{Float64}, df[!, :Time]))
     end
     times2 = sort!(unique(times))
 
@@ -55,9 +55,9 @@ function createDataDistributionM(dfs::Vector{DataFrame}, obs::Vector{Symbol})
     for t in times2
         ar = MvNormal[]
         for df in dfs
-            if any(df[:Time] .== t)
-                for aa in 1:size(df[df[:Time] .== t, obs])[1]
-                    vv = vec(convert(Array{Float64},df[df[:Time] .== t, obs][aa,:]))
+            if any(df[!, :Time] .== t)
+                for aa in 1:size(df[df[!, :Time] .== t, obs])[1]
+                    vv = vec(convert(Array{Float64},df[df[!, :Time] .== t, obs][aa,:]))
                     push!(ar,MvNormal(vv, vv./10))
                 end
             end
@@ -79,12 +79,12 @@ function loadData(path::String)
     datasets = DataFrame[] # Init empty vector
     if ispath(path)
         if isfile(path)
-            push!(datasets, readtable(path))
+            push!(datasets, CSV.read(path))
             return datasets
         else
             files = readdir(path) # grab all files in the given folder
             for f in files
-                push!(datasets, readtable(path * "/" * f))
+                push!(datasets, CSV.read(path * "/" * f))
             end
             return datasets
         end

@@ -8,7 +8,7 @@ function updateParameters!(sys::System, ens::Ensemble)
 
     # update kinetic rate parameters
     θstep = computeRateMeans!(sys, rxnActual, rxnExpect, meanHyper)
-    
+
     # update variances
     computeRateVar!(sys, ens, rxnActual, rxnExpect, θstep, varHyper)
     append!(sys.state.θs, sys.state.θ)
@@ -41,8 +41,8 @@ end
 
 function hyperUpdate(sys::System, ens::Ensemble)
     n = length(sys.model.bounds[1]) - length(sys.model.ps)
-    meanHyper = Vector{Float64}(n)
-    varHyper = Vector{Float64}(n)
+    meanHyper = Vector{Float64}(undef, n)
+    varHyper = Vector{Float64}(undef, n)
 
     for j in eachindex(meanHyper)
         v = Float64[]
@@ -56,7 +56,7 @@ function hyperUpdate(sys::System, ens::Ensemble)
 end
 
 function computeRateMeans!(sys::System, rxnActual::Matrix{Float64}, rxnExpect::Matrix{Float64}, arm)
-    θstep = vec(sum(rxnActual, 2) ./ sum(rxnExpect, 2))
+    θstep = vec(sum(rxnActual, dims = 2) ./ sum(rxnExpect, dims = 2))
     if sys.routine.sampling == :log
         θstep = log.(θstep)
     end
@@ -74,9 +74,9 @@ function computeRateVar!(sys::System, ens::Ensemble, rxnActual::Matrix{Float64},
 
     if sys.routine.sampling == :log
         tmp = log.((rxnActual.+0.01) ./ rxnExpect)
-        σ2step = vec(var(tmp,2))
+        σ2step = vec(var(tmp, dims = 2))
     else
-        σ2step = vec(var(tmp,2))
+        σ2step = vec(var(tmp, dims = 2))
     end
     append!(σ2step, ars)
 
@@ -88,5 +88,3 @@ function computeRateVar!(sys::System, ens::Ensemble, rxnActual::Matrix{Float64},
         sys.state.σ2 .= β .* diagm(σ2step) .+ (1.0 - β) .* sys.state.σ2
     end
 end
-
-

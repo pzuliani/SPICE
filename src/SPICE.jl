@@ -6,6 +6,10 @@ module SPICE
     using Sobol
     using Compat
     using StatsBase
+    using LinearAlgebra
+    using Random
+    using Statistics
+    using CSV
 
     # ---- Imports & includes
     import Base.show, Base.copy
@@ -15,15 +19,15 @@ module SPICE
     include("Sim/sim.jl")
 
     # ---- Export types
-    export CEM, 
-    Model, 
-    DataSets, 
+    export CEM,
+    Model,
+    DataSets,
     TauOpt,
-    System, 
+    System,
     SystemState,
 
     # ---- Export functions
-    est, 
+    est,
     estimate,
     resetSystem!,
     sim

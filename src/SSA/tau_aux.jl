@@ -1,4 +1,4 @@
-type TauVar
+mutable struct TauVar
     neg_nu::Matrix{Int}
     g::Vector{Float64}
     irs::Vector{Int}
@@ -12,8 +12,8 @@ end
 function preAllocTauVar(sys::System)
     # useful precomputations
     neg_nu = copy(sys.model.ν)
-    neg_nu[sys.model.ν .>= zero(eltype(sys.model.ν))] = zero(eltype(neg_nu))
-    
+    neg_nu[sys.model.ν .>= zero(eltype(sys.model.ν))] .= zero(eltype(neg_nu))
+
     g = zeros(Float64, sys.model.ns)
     for i in eachindex(sys.model.hor)
         sys.model.hor[i] == 0 && (g[i] = 0.0; continue)
@@ -21,8 +21,8 @@ function preAllocTauVar(sys::System)
         sys.model.hor[i] == 2 && (g[i] = 2.0; continue)
     end
 
-    irsBits = vec(any(sys.model.ν .!= zero(eltype(sys.model.ν)), 1))
-    irs = Vector{Int}(0)
+    irsBits = vec(any(sys.model.ν .!= zero(eltype(sys.model.ν)), dims = 1))
+    irs = Int[]
     for i in eachindex(irsBits)
         irsBits[i] && push!(irs, i)
     end

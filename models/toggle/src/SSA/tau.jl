@@ -1,5 +1,5 @@
 function optimisedTauLeap!(model::Model, p::Path, tf::Float64, tauOpt::TauOpt, tauVar::TauVar)
-    
+
     # ---- Main loop
     fly = zeros(model.nr)
     while p.t < tf
@@ -11,7 +11,7 @@ function optimisedTauLeap!(model::Model, p::Path, tf::Float64, tauOpt::TauOpt, t
         tr = tf - p.t
 
         τ, switch = computeLeap(model, p, tr, tauOpt, tauVar)
-        
+
         # ---- Switch to direct method?
         if switch == true
             nDirectMethod!(p, model.F, model.ν, tf, model.nr, tauOpt.nd)
@@ -49,10 +49,10 @@ end
 
 function computeLeap(model::Model, p::Path, tr::Float64, tauOpt::TauOpt, tauVar::TauVar)::Tuple{Float64,Bool}
     τ = -Inf
-    
+
     # ---- index of non-critical reactions
-    Jncr = Vector{Int}(0)
-    Jcr = Vector{Int}(0)
+    Jncr = Vector{Int}(undef, 0)
+    Jcr = Vector{Int}(undef, 0)
 
     for j in eachindex(tauVar.l)
         tauVar.l[j] = minimum(p.x ./ abs.(vec(tauVar.neg_nu[j, :])))
@@ -61,7 +61,7 @@ function computeLeap(model::Model, p::Path, tr::Float64, tauOpt::TauOpt, tauVar:
 
     Acr = view(p.a, Jcr)
     Ancr = view(p.a, Jncr)
-    
+
     if length(Jncr) > 0
 
         # ---- No need to update hor[i] == 1, hor[i] == 2 as is constant
@@ -119,11 +119,11 @@ function computeLeap(model::Model, p::Path, tr::Float64, tauOpt::TauOpt, tauVar:
             view(tauVar.k, Jcr)[rxn] = 1
             poissonSampler!(Jncr, tauVar.k, Ancr, τ)
         end
-        
+
         # ---- Check proposed step, recompute τ if negative species, or break
         for i in eachindex(tauVar.dx)
             tauVar.dx[i] = 0
-            for j in eachindex(tauVar.k) 
+            for j in eachindex(tauVar.k)
                 tauVar.dx[i] += tauVar.k[j] * model.ν[j, i]
             end
         end
