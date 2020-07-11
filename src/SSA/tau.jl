@@ -14,7 +14,7 @@ function optimisedTauLeap!(model::Model, p::Path, tf::Float64, tauOpt::TauOpt, t
 
         # ---- Switch to direct method?
         if switch == true
-            nDirectMethod!(p, model.F, model.ν, tf, model.nr, tauOpt.nd)
+            nDirectMethod!(p, model.F, model.ν, tf, model.nr, tauOpt.nd, model.mapping)
 
         # ---- Else accept step
         else
@@ -28,7 +28,11 @@ function optimisedTauLeap!(model::Model, p::Path, tf::Float64, tauOpt::TauOpt, t
             p.t += τ
         end
     end
-    p.fly += fly./p.θ
+    for j in eachindex(p.θ)
+        for j2 in model.mapping[j]
+            p.fly[j2] += fly[j2] ./ p.θ[j]
+        end
+    end
 end
 
 optimisedTauLeap = optimisedTauLeap!

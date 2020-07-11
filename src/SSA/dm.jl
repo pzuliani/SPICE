@@ -18,7 +18,7 @@ function selectReaction(a::SubArray, suma::Float64, nr::Int)
     rxn
 end
 
-function directMethod!(p::Path, F::Function, ν::Matrix{Int}, tf::Float64, nr::Int)
+function directMethod!(p::Path, F::Function, ν::Matrix{Int}, tf::Float64, nr::Int, mapping::Vector{Vector{Int}})
     #a = zeros(Float64, nr)
     fly = zeros(nr)
     while true
@@ -55,11 +55,15 @@ function directMethod!(p::Path, F::Function, ν::Matrix{Int}, tf::Float64, nr::I
         end
 
     end
-    p.fly += fly./p.θ
+    for j in eachindex(p.θ)
+        for j2 in mapping[j]
+            p.fly[j2] += fly[j2] ./ p.θ[j]
+        end
+    end
 end
 directMethod = directMethod!
 
-function nDirectMethod!(p::Path, F::Function, ν::Matrix{Int}, tf::Float64, nr::Int, nd::Int)
+function nDirectMethod!(p::Path, F::Function, ν::Matrix{Int}, tf::Float64, nr::Int, nd::Int, mapping::Vector{Vector{Int}})
     nstep = 0
     fly = zeros(nr)
     while nstep < nd
@@ -95,7 +99,11 @@ function nDirectMethod!(p::Path, F::Function, ν::Matrix{Int}, tf::Float64, nr::
 
         nstep += 1
     end
-    p.fly += fly./p.θ
+    for j in eachindex(p.θ)
+        for j2 in mapping[j]
+            p.fly[j2] += fly[j2] ./ p.θ[j]
+        end
+    end
 end
 
 function moleculeLimit!(p::Path, tf::Float64)

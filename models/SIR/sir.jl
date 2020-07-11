@@ -30,7 +30,7 @@ const hor = [2, 2, 1]
 
 # ---- Bounds on the initial search space for parameters
 const bounds = [[1e-6,1e-6,1e-6,1e-6],  # set to your lower bounds
-                [1e-2,1e-2,1e-2,1e-2]]  # set to your upper bounds
+                [1e-3,1e-3,1e-3,1e-3]]  # set to your upper bounds
 
 # ---- Hazard/propensity functions
 function F(p)
@@ -58,6 +58,6 @@ mapping = [[1, 2, 3, 5], [4], [6], [7]]
 
 model = Model(x0, F, H, ν, bounds, hor = hor, obsname = [:S, :I, :R], mapping = mapping)
 
-system = System(model, "./data", routine=CEM(ssa=:Tau, nElite = 10, nRepeat=1, nSamples=1000, maxIter=250, mSamples=20000, shoot=false, splitting=false, sampling=:log, tauOpt=TauOpt(ϵ=0.1)))
+system = System(model, "./data", routine=CEM(ssa=:Direct, nElite = 10, nRepeat=1, nSamples=1000, maxIter=250, mSamples=20000, shoot=false, splitting=false, sampling=:log, tauOpt=TauOpt(ϵ=0.1)))
 
 estimate(system, 1, "SIR")

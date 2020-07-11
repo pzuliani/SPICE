@@ -38,7 +38,7 @@ function estimate(system::System, nrun::Int, output::String)
         l = length(γs)
 
         # ---- Estimate traces
-        θs = reshape(state.θs, (system.model.nr, l))'
+        θs = Array(reshape(state.θs, (length(state.θ), l))')
 
         # ---- nSamples
         ns = state.ns[2:end]
